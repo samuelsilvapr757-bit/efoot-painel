@@ -1,0 +1,239 @@
+name: Build eFootball Painel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xybp888/ios-toolchain:latest
+    
+    steps:
+      - name: Criar projeto
+        run: |
+          mkdir -p /tmp/efoot
+          cd /tmp/efoot
+          
+          cat > Tweak.xm << 'FIM'
+          #import <Foundation/Foundation.h>
+          #import <UIKit/UIKit.h>
+          
+          static UIWindow *painelWindow;
+          static BOOL painelAtivo = NO;
+          
+          @interface PainelView : UIWindow
+          @end
+          
+          @implementation PainelView
+          
+          - (instancetype)init {
+              self = [super initWithFrame:CGRectMake(15, 70, 250, 380)];
+              if (self) {
+                  self.windowLevel = UIWindowLevelAlert + 999;
+                  self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.92];
+                  self.layer.cornerRadius = 15;
+                  self.layer.borderWidth = 2.5;
+                  self.layer.borderColor = [UIColor colorWithRed:0.0 green:1.0 blue:0.3 alpha:1.0].CGColor;
+                  self.clipsToBounds = YES;
+                  
+                  UILabel *titulo = [[UILabel alloc] initWithFrame:CGRectMake(10, 12, 230, 35)];
+                  titulo.text = @"⚽ EFOOTBALL ULTRA";
+                  titulo.textColor = [UIColor colorWithRed:0.0 green:1.0 blue:0.3 alpha:1.0];
+                  titulo.font = [UIFont boldSystemFontOfSize:18];
+                  titulo.textAlignment = NSTextAlignmentCenter;
+                  [self addSubview:titulo];
+                  
+                  [self criarBotao:@"🚀 SPEED" frame:CGRectMake(10, 55, 230, 38) cor:[UIColor systemBlueColor] acao:@selector(acaoSpeed)];
+                  [self criarBotao:@"💪 FORÇA" frame:CGRectMake(10, 100, 230, 38) cor:[UIColor orangeColor] acao:@selector(acaoForca)];
+                  [self criarBotao:@"⚽ GOL" frame:CGRectMake(10, 145, 230, 38) cor:[UIColor redColor] acao:@selector(acaoGol)];
+                  [self criarBotao:@"🔄 DRIBLE" frame:CGRectMake(10, 190, 230, 38) cor:[UIColor purpleColor] acao:@selector(acaoDrible)];
+                  [self criarBotao:@"🧤 GOLEIRO" frame:CGRectMake(10, 235, 230, 38) cor:[UIColor systemGreenColor] acao:@selector(acaoGoleiro)];
+                  [self criarBotao:@"💀 IMORTAL" frame:CGRectMake(10, 280, 230, 38) cor:[UIColor darkGrayColor] acao:@selector(acaoImortal)];
+                  
+                  UIButton *fechar = [UIButton buttonWithType:UIButtonTypeSystem];
+                  fechar.frame = CGRectMake(10, 340, 230, 30);
+                  fechar.backgroundColor = [UIColor redColor];
+                  [fechar setTitle:@"✕ FECHAR" forState:UIControlStateNormal];
+                  [fechar setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+                  fechar.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+                  fechar.layer.cornerRadius = 8;
+                  fechar.clipsToBounds = YES;
+                  [fechar addTarget:self action:@selector(fechar) forControlEvents:UIControlEventTouchUpInside];
+                  [self addSubview:fechar];
+                  
+                  UIPanGestureRecognizer *arrastar = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(arrastar:)];
+                  [self addGestureRecognizer:arrastar];
+              }
+              return self;
+          }
+          
+          - (void)criarBotao:(NSString *)titulo frame:(CGRect)frame cor:(UIColor *)cor acao:(SEL)acao {
+              UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
+              btn.frame = frame;
+              btn.backgroundColor = cor;
+              [btn setTitle:titulo forState:UIControlStateNormal];
+              [btn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+              btn.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+              btn.layer.cornerRadius = 10;
+              btn.clipsToBounds = YES;
+              [btn addTarget:self action:acao forControlEvents:UIControlEventTouchUpInside];
+              [self addSubview:btn];
+          }
+          
+          - (void)arrastar:(UIPanGestureRecognizer *)g {
+              CGPoint t = [g translationInView:self];
+              self.center = CGPointMake(self.center.x + t.x, self.center.y + t.y);
+              [g setTranslation:CGPointZero inView:self];
+          }
+          
+          - (void)acaoSpeed { [self alerta:@"🚀 SPEED" msg:@"Velocidade máxima ativada!"]; }
+          - (void)acaoForca { [self alerta:@"💪 FORÇA" msg:@"Força divina ativada!"]; }
+          - (void)acaoGol { [self alerta:@"⚽ GOL" msg:@"Todo chute é gol!"]; }
+          - (void)acaoDrible { [self alerta:@"🔄 DRIBLE" msg:@"Nunca perde a bola!"]; }
+          - (void)acaoGoleiro { [self alerta:@"🧤 GOLEIRO" msg:@"Defende todas!"]; }
+          - (void)acaoImortal { [self alerta:@"💀 IMORTAL" msg:@"Você é imortal!"]; }
+          - (void)fechar { self.hidden = YES; }
+          
+          - (void)alerta:(NSString *)t msg:(NSString *)m {
+              UIAlertController *a = [UIAlertController alertControllerWithTitle:t message:m preferredStyle:UIAlertControllerStyleAlert];
+              [a addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+              [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:a animated:YES completion:nil];
+          }
+          @end
+          
+          %hook PlayerController
+          - (float)sprintSpeed { return 999999.0f; }
+          - (float)acceleration { return 999999.0f; }
+          - (float)strength { return 999999.0f; }
+          - (float)balance { return 999999.0f; }
+          - (float)agility { return 999999.0f; }
+          - (float)stamina { return 9999999.0f; }
+          %end
+          
+          %hook ShotController
+          - (float)finishing { return 999999.0f; }
+          - (float)shotPower { return 999999.0f; }
+          - (float)shotAccuracy { return 999999.0f; }
+          %end
+          
+          %hook DribbleController
+          - (float)dribbling { return 999999.0f; }
+          - (float)ballControl { return 999999.0f; }
+          %end
+          
+          %hook JumpController
+          - (float)jumping { return 999999.0f; }
+          - (float)jumpHeight { return 999999.0f; }
+          - (float)headingAccuracy { return 999999.0f; }
+          %end
+          
+          %hook PassController
+          - (float)shortPassing { return 999999.0f; }
+          - (float)longPassing { return 999999.0f; }
+          - (float)throughBallAccuracy { return 999999.0f; }
+          %end
+          
+          %hook GoalkeeperController
+          - (float)diving { return 999999.0f; }
+          - (float)handling { return 999999.0f; }
+          - (float)reflexes { return 999999.0f; }
+          - (float)diveReactionTime { return 0.0000001f; }
+          - (float)diveRange { return 999999.0f; }
+          %end
+          
+          %hook StaminaController
+          - (float)currentStamina { return 9999999.0f; }
+          - (float)staminaDrainRate { return 0.0f; }
+          %end
+          
+          %hook InjuryController
+          - (BOOL)canGetInjured { return NO; }
+          - (float)injuryResistance { return 999999.0f; }
+          %end
+          
+          %hook AIOpponentController
+          - (float)aiReactionTime { return 999.0f; }
+          - (float)aiPassAccuracy { return 0.01f; }
+          - (float)aiShotAccuracy { return 0.01f; }
+          - (float)aiSpeed { return 0.1f; }
+          %end
+          
+          %hook GameViewController
+          - (void)viewDidAppear:(BOOL)animated {
+              %orig;
+              if (!painelAtivo) {
+                  painelWindow = [[PainelView alloc] init];
+                  [painelWindow makeKeyAndVisible];
+                  painelAtivo = YES;
+              } else {
+                  painelWindow.hidden = NO;
+              }
+          }
+          %end
+          FIM
+          
+          cat > Makefile << 'FIM'
+          ARCHS = arm64
+          TARGET = iphone:clang:16.5:14.0
+          
+          include $(THEOS)/makefiles/common.mk
+          
+          TWEAK_NAME = eFootballUltra
+          eFootballUltra_FILES = Tweak.xm
+          eFootballUltra_PLIST = eFootballUltra.plist
+          eFootballUltra_CFLAGS = -fobjc-arc
+          
+          include $(THEOS_MAKE_PATH)/tweak.mk
+          FIM
+          
+          cat > control << 'FIM'
+          Package: com.hackerai.efootballultra
+          Name: eFootballUltra
+          Depends: mobilesubstrate
+          Version: 1.0.0
+          Architecture: iphoneos-arm
+          Description: eFootball Ultra com Painel
+          Maintainer: HackerAI
+          Author: HackerAI
+          Section: Tweaks
+          FIM
+          
+          cat > eFootballUltra.plist << 'FIM'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>Filter</key>
+              <dict>
+                  <key>Bundles</key>
+                  <array>
+                      <string>com.konami.eFootball</string>
+                  </array>
+              </dict>
+          </dict>
+          </plist>
+          FIM
+          
+          echo "✅ Arquivos criados:"
+          ls -la /tmp/efoot/
+          
+      - name: Compilar com Theos
+        run: |
+          cd /tmp/efoot
+          export THEOS=/usr/share/theos
+          make package ARCHS=arm64 DEBUG=0
+          echo "✅ Build finalizado"
+          echo "=== Arquivos gerados ==="
+          find /tmp/efoot -name "*.dylib" -o -name "*.deb" -o -name "*.plist" 2>/dev/null
+          
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: eFootball-Painel
+          path: |
+            /tmp/efoot/.theos/obj/debug/arm64/eFootballUltra.dylib
+            /tmp/efoot/.theos/obj/arm64/eFootballUltra.dylib
+            /tmp/efoot/eFootballUltra.plist
+            /tmp/efoot/packages/*.deb
+          if-no-files-found: warn
