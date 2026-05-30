@@ -5,25 +5,32 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13
     
     steps:
-      - name: Instalar Theos
+      - name: Instalar Theos (via Homebrew)
         run: |
-          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-      
-      - name: Criar projeto do zero
+          brew tap theos/theos
+          brew install theos
+          echo "THEOS=$(brew --prefix theos)" >> $GITHUB_ENV
+          
+      - name: Verificar instalação
         run: |
-          export THEOS=$HOME/theos
+          export THEOS=$(brew --prefix theos)
+          echo "Theos instalado em: $THEOS"
+          ls -la $THEOS
+          
+      - name: Criar projeto
+        run: |
+          export THEOS=$(brew --prefix theos)
           mkdir -p /tmp/efoot
           cd /tmp/efoot
           
-          # ============ Tweak.xm com PAINEL FLUTUANTE ============
+          # CRIAR TWEAK.XM
           cat > Tweak.xm << 'FIM'
           #import <Foundation/Foundation.h>
           #import <UIKit/UIKit.h>
           
-          // PAINEL FLUTUANTE
           static UIWindow *painelWindow;
           static BOOL painelAtivo = NO;
           
@@ -33,117 +40,79 @@ jobs:
           @implementation PainelView
           
           - (instancetype)init {
-              self = [super initWithFrame:CGRectMake(20, 80, 260, 350)];
+              self = [super initWithFrame:CGRectMake(15, 70, 250, 380)];
               if (self) {
                   self.windowLevel = UIWindowLevelAlert + 999;
-                  self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.9];
+                  self.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.92];
                   self.layer.cornerRadius = 15;
-                  self.layer.borderWidth = 2;
-                  self.layer.borderColor = [UIColor greenColor].CGColor;
+                  self.layer.borderWidth = 2.5;
+                  self.layer.borderColor = [UIColor colorWithRed:0.0 green:1.0 blue:0.3 alpha:1.0].CGColor;
                   self.clipsToBounds = YES;
                   
-                  // Título
-                  UILabel *titulo = [[UILabel alloc] initWithFrame:CGRectMake(10, 10, 240, 35)];
-                  titulo.text = @"⚽ EF OOTBALL ULTRA";
-                  titulo.textColor = [UIColor greenColor];
-                  titulo.font = [UIFont boldSystemFontOfSize:17];
+                  UILabel *titulo = [[UILabel alloc] initWithFrame:CGRectMake(10, 12, 230, 35)];
+                  titulo.text = @"⚽ EFOOTBALL ULTRA";
+                  titulo.textColor = [UIColor colorWithRed:0.0 green:1.0 blue:0.3 alpha:1.0];
+                  titulo.font = [UIFont boldSystemFontOfSize:18];
                   titulo.textAlignment = NSTextAlignmentCenter;
                   [self addSubview:titulo];
                   
-                  // BOTÕES
-                  // 1 - Speed
-                  [self adicionarBotao:@"🚀 SPEED HACK" frame:CGRectMake(10, 55, 240, 35) cor:[UIColor blueColor] acao:@selector(ativarSpeed)];
+                  [self criarBotao:@"🚀 SPEED" frame:CGRectMake(10, 55, 230, 38) cor:[UIColor systemBlueColor] acao:@selector(acaoSpeed)];
+                  [self criarBotao:@"💪 FORÇA" frame:CGRectMake(10, 100, 230, 38) cor:[UIColor orangeColor] acao:@selector(acaoForca)];
+                  [self criarBotao:@"⚽ GOL" frame:CGRectMake(10, 145, 230, 38) cor:[UIColor redColor] acao:@selector(acaoGol)];
+                  [self criarBotao:@"🔄 DRIBLE" frame:CGRectMake(10, 190, 230, 38) cor:[UIColor purpleColor] acao:@selector(acaoDrible)];
+                  [self criarBotao:@"🧤 GOLEIRO" frame:CGRectMake(10, 235, 230, 38) cor:[UIColor systemGreenColor] acao:@selector(acaoGoleiro)];
+                  [self criarBotao:@"💀 IMORTAL" frame:CGRectMake(10, 280, 230, 38) cor:[UIColor darkGrayColor] acao:@selector(acaoImortal)];
                   
-                  // 2 - Força
-                  [self adicionarBotao:@"💪 FORÇA DIVINA" frame:CGRectMake(10, 100, 240, 35) cor:[UIColor orangeColor] acao:@selector(ativarForca)];
-                  
-                  // 3 - Gol
-                  [self adicionarBotao:@"⚽ GOL PERFEITO" frame:CGRectMake(10, 145, 240, 35) cor:[UIColor redColor] acao:@selector(ativarGol)];
-                  
-                  // 4 - Drible
-                  [self adicionarBotao:@"🔄 DRIBLE TOTAL" frame:CGRectMake(10, 190, 240, 35) cor:[UIColor purpleColor] acao:@selector(ativarDrible)];
-                  
-                  // 5 - Goleiro
-                  [self adicionarBotao:@"🧤 GOLEIRO ABSOLUTO" frame:CGRectMake(10, 235, 240, 35) cor:[UIColor greenColor] acao:@selector(ativarGoleiro)];
-                  
-                  // 6 - Imortal
-                  [self adicionarBotao:@"💀 IMORTAL" frame:CGRectMake(10, 280, 240, 35) cor:[UIColor darkGrayColor] acao:@selector(ativarImortal)];
-                  
-                  // 7 - Fechar
                   UIButton *fechar = [UIButton buttonWithType:UIButtonTypeSystem];
-                  fechar.frame = CGRectMake(10, 320, 240, 25);
+                  fechar.frame = CGRectMake(10, 340, 230, 30);
                   fechar.backgroundColor = [UIColor redColor];
-                  [fechar setTitle:@"✕ FECHAR PAINEL" forState:UIControlStateNormal];
+                  [fechar setTitle:@"✕ FECHAR" forState:UIControlStateNormal];
                   [fechar setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-                  fechar.titleLabel.font = [UIFont boldSystemFontOfSize:12];
-                  fechar.layer.cornerRadius = 5;
+                  fechar.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+                  fechar.layer.cornerRadius = 8;
                   fechar.clipsToBounds = YES;
-                  [fechar addTarget:self action:@selector(fecharPainel) forControlEvents:UIControlEventTouchUpInside];
+                  [fechar addTarget:self action:@selector(fechar) forControlEvents:UIControlEventTouchUpInside];
                   [self addSubview:fechar];
                   
-                  // ARRASTÁVEL
-                  UIPanGestureRecognizer *arrastar = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(arrastarPainel:)];
+                  UIPanGestureRecognizer *arrastar = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(arrastar:)];
                   [self addGestureRecognizer:arrastar];
               }
               return self;
           }
           
-          - (void)adicionarBotao:(NSString *)titulo frame:(CGRect)frame cor:(UIColor *)cor acao:(SEL)acao {
+          - (void)criarBotao:(NSString *)titulo frame:(CGRect)frame cor:(UIColor *)cor acao:(SEL)acao {
               UIButton *btn = [UIButton buttonWithType:UIButtonTypeSystem];
               btn.frame = frame;
               btn.backgroundColor = cor;
               [btn setTitle:titulo forState:UIControlStateNormal];
               [btn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-              btn.titleLabel.font = [UIFont boldSystemFontOfSize:13];
-              btn.layer.cornerRadius = 8;
+              btn.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+              btn.layer.cornerRadius = 10;
               btn.clipsToBounds = YES;
               [btn addTarget:self action:acao forControlEvents:UIControlEventTouchUpInside];
               [self addSubview:btn];
           }
           
-          - (void)arrastarPainel:(UIPanGestureRecognizer *)gesto {
-              CGPoint translacao = [gesto translationInView:self];
-              self.center = CGPointMake(self.center.x + translacao.x, self.center.y + translacao.y);
-              [gesto setTranslation:CGPointZero inView:self];
+          - (void)arrastar:(UIPanGestureRecognizer *)g {
+              CGPoint t = [g translationInView:self];
+              self.center = CGPointMake(self.center.x + t.x, self.center.y + t.y);
+              [g setTranslation:CGPointZero inView:self];
           }
           
-          - (void)ativarSpeed {
-              [self mostrarAlerta:@"🚀 SPEED HACK" mensagem:@"Ativado! Velocidade máxima!"];
-          }
+          - (void)acaoSpeed { [self alerta:@"🚀 SPEED" msg:@"Velocidade máxima ativada!"]; }
+          - (void)acaoForca { [self alerta:@"💪 FORÇA" msg:@"Força divina ativada!"]; }
+          - (void)acaoGol { [self alerta:@"⚽ GOL" msg:@"Todo chute é gol!"]; }
+          - (void)acaoDrible { [self alerta:@"🔄 DRIBLE" msg:@"Nunca perde a bola!"]; }
+          - (void)acaoGoleiro { [self alerta:@"🧤 GOLEIRO" msg:@"Defende todas!"]; }
+          - (void)acaoImortal { [self alerta:@"💀 IMORTAL" msg:@"Você é imortal!"]; }
+          - (void)fechar { self.hidden = YES; }
           
-          - (void)ativarForca {
-              [self mostrarAlerta:@"💪 FORÇA DIVINA" mensagem:@"Ativado! Força sobre-humana!"];
+          - (void)alerta:(NSString *)t msg:(NSString *)m {
+              UIAlertController *a = [UIAlertController alertControllerWithTitle:t message:m preferredStyle:UIAlertControllerStyleAlert];
+              [a addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
+              [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:a animated:YES completion:nil];
           }
-          
-          - (void)ativarGol {
-              [self mostrarAlerta:@"⚽ GOL PERFEITO" mensagem:@"Ativado! Todo chute é gol!"];
-          }
-          
-          - (void)ativarDrible {
-              [self mostrarAlerta:@"🔄 DRIBLE TOTAL" mensagem:@"Ativado! Nunca perde a bola!"];
-          }
-          
-          - (void)ativarGoleiro {
-              [self mostrarAlerta:@"🧤 GOLEIRO ABSOLUTO" mensagem:@"Ativado! Defende todas!"];
-          }
-          
-          - (void)ativarImortal {
-              [self mostrarAlerta:@"💀 IMORTAL" mensagem:@"Ativado! Nunca se machuca!"];
-          }
-          
-          - (void)fecharPainel {
-              self.hidden = YES;
-          }
-          
-          - (void)mostrarAlerta:(NSString *)titulo mensagem:(NSString *)mensagem {
-              UIAlertController *alerta = [UIAlertController alertControllerWithTitle:titulo message:mensagem preferredStyle:UIAlertControllerStyleAlert];
-              [alerta addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:nil]];
-              [[UIApplication sharedApplication].keyWindow.rootViewController presentViewController:alerta animated:YES completion:nil];
-          }
-          
           @end
-          
-          // ============ HOOKS ============
           
           %hook PlayerController
           - (float)sprintSpeed { return 999999.0f; }
@@ -152,16 +121,12 @@ jobs:
           - (float)balance { return 999999.0f; }
           - (float)agility { return 999999.0f; }
           - (float)stamina { return 9999999.0f; }
-          - (float)bodyChecking { return 999999.0f; }
           %end
           
           %hook ShotController
           - (float)finishing { return 999999.0f; }
           - (float)shotPower { return 999999.0f; }
           - (float)shotAccuracy { return 999999.0f; }
-          - (float)freekicks { return 999999.0f; }
-          - (float)headers { return 999999.0f; }
-          - (float)curve { return 999999.0f; }
           %end
           
           %hook DribbleController
@@ -179,8 +144,6 @@ jobs:
           - (float)shortPassing { return 999999.0f; }
           - (float)longPassing { return 999999.0f; }
           - (float)throughBallAccuracy { return 999999.0f; }
-          - (float)vision { return 999999.0f; }
-          - (float)crossing { return 999999.0f; }
           %end
           
           %hook GoalkeeperController
@@ -189,14 +152,11 @@ jobs:
           - (float)reflexes { return 999999.0f; }
           - (float)diveReactionTime { return 0.0000001f; }
           - (float)diveRange { return 999999.0f; }
-          - (float)positioning { return 999999.0f; }
-          - (float)oneOnOneSaves { return 999999.0f; }
           %end
           
           %hook StaminaController
           - (float)currentStamina { return 9999999.0f; }
           - (float)staminaDrainRate { return 0.0f; }
-          - (float)maxStamina { return 9999999.0f; }
           %end
           
           %hook InjuryController
@@ -209,10 +169,8 @@ jobs:
           - (float)aiPassAccuracy { return 0.01f; }
           - (float)aiShotAccuracy { return 0.01f; }
           - (float)aiSpeed { return 0.1f; }
-          - (float)aiStrength { return 0.01f; }
           %end
           
-          // MOSTRAR PAINEL QUANDO ENTRA NO JOGO
           %hook GameViewController
           - (void)viewDidAppear:(BOOL)animated {
               %orig;
@@ -227,7 +185,7 @@ jobs:
           %end
           FIM
           
-          # ============ Makefile ============
+          # CRIAR MAKEFILE
           cat > Makefile << 'FIM'
           include $(THEOS)/makefiles/common.mk
           TWEAK_NAME = eFootballUltra
@@ -237,20 +195,20 @@ jobs:
           include $(THEOS_MAKE_PATH)/tweak.mk
           FIM
           
-          # ============ control ============
+          # CRIAR CONTROL
           cat > control << 'FIM'
           Package: com.hackerai.efootballultra
           Name: eFootballUltra
           Depends: mobilesubstrate
           Version: 1.0.0
           Architecture: iphoneos-arm
-          Description: eFootball Ultra Hack
+          Description: eFootball Ultra com Painel
           Maintainer: HackerAI
           Author: HackerAI
           Section: Tweaks
           FIM
           
-          # ============ plist ============
+          # CRIAR PLIST
           cat > eFootballUltra.plist << 'FIM'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -258,10 +216,6 @@ jobs:
           <dict>
               <key>Filter</key>
               <dict>
-                  <key>Executables</key>
-                  <array>
-                      <string>eFootball</string>
-                  </array>
                   <key>Bundles</key>
                   <array>
                       <string>com.konami.eFootball</string>
@@ -271,17 +225,16 @@ jobs:
           </plist>
           FIM
           
-          echo "✅ ARQUIVOS CRIADOS:"
+          echo "✅ ARQUIVOS CRIADOS"
           ls -la
           
       - name: Compilar
         run: |
-          export THEOS=$HOME/theos
+          export THEOS=$(brew --prefix theos)
           cd /tmp/efoot
           make package ARCHS=arm64 DEBUG=0
-          echo ""
-          echo "✅ ARQUIVOS GERADOS:"
-          find /tmp/efoot -name "*.dylib" -o -name "*.plist" -o -name "*.deb"
+          echo "✅ BUILD CONCLUÍDO"
+          find /tmp/efoot -name "*.dylib" -o -name "*.deb" -o -name "*.plist"
       
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -291,5 +244,4 @@ jobs:
             /tmp/efoot/.theos/obj/debug/arm64/eFootballUltra.dylib
             /tmp/efoot/.theos/obj/arm64/eFootballUltra.dylib
             /tmp/efoot/eFootballUltra.plist
-            /tmp/efoot/packages/*.deb
           if-no-files-found: warn
