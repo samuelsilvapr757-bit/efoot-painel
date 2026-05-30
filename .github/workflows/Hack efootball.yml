@@ -1,0 +1,93 @@
+name: Build eFootball Painel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-13
+    
+    steps:
+      - name: Instalar Theos
+        run: |
+          brew tap theos/theos
+          brew install theos
+          echo "THEOS=$(brew --prefix theos)" >> $GITHUB_ENV
+      
+      - name: Criar e compilar
+        run: |
+          export THEOS=$(brew --prefix theos)
+          mkdir -p /tmp/efoot && cd /tmp/efoot
+          
+          # Cria arquivos
+          echo '#import <UIKit/UIKit.h>' > Tweak.xm
+          echo 'static UIWindow *w; static BOOL v=NO;' >> Tweak.xm
+          echo '@interface P:UIWindow @end @implementation P' >> Tweak.xm
+          echo '- (instancetype)init{' >> Tweak.xm
+          echo 'self=[super initWithFrame:CGRectMake(20,80,240,300)];' >> Tweak.xm
+          echo 'self.backgroundColor=[UIColor blackColor];' >> Tweak.xm
+          echo 'self.windowLevel=UIWindowLevelAlert+999;' >> Tweak.xm
+          echo 'self.layer.cornerRadius=12;' >> Tweak.xm
+          echo 'UILabel*l=[UILabel new];l.frame=CGRectMake(10,10,220,30);' >> Tweak.xm
+          echo 'l.text=@"⚽ EFOOTBALL ULTRA";l.textColor=[UIColor greenColor];' >> Tweak.xm
+          echo 'l.textAlignment=1;l.font=[UIFont boldSystemFontOfSize:16];' >> Tweak.xm
+          echo '[self addSubview:l];return self;}' >> Tweak.xm
+          echo '- (void)touchesBegan:(NSSet*)t withEvent:(UIEvent*)e{self.hidden=YES;}' >> Tweak.xm
+          echo 'UIPanGestureRecognizer*p;' >> Tweak.xm
+          echo '- (void)didMoveToSuperview{p=[[UIPanGestureRecognizer alloc]initWithTarget:self action:@selector(d:)];[self addGestureRecognizer:p];}' >> Tweak.xm
+          echo '- (void)d:(UIPanGestureRecognizer*)g{CGPoint t=[g translationInView:self];self.center=CGPointMake(self.center.x+t.x,self.center.y+t.y);[g setTranslation:CGPointZero inView:self];}' >> Tweak.xm
+          echo '@end' >> Tweak.xm
+          echo '%hook GameViewController' >> Tweak.xm
+          echo '- (void)viewDidAppear:(BOOL)a{%orig;if(!v){w=[[P alloc]init];[w makeKeyAndVisible];v=YES;}}' >> Tweak.xm
+          echo '%end' >> Tweak.xm
+          echo '%hook PlayerController' >> Tweak.xm
+          echo '- (float)sprintSpeed{return 999999.0f;}' >> Tweak.xm
+          echo '- (float)strength{return 999999.0f;}' >> Tweak.xm
+          echo '- (float)stamina{return 9999999.0f;}' >> Tweak.xm
+          echo '%end' >> Tweak.xm
+          echo '%hook ShotController' >> Tweak.xm
+          echo '- (float)finishing{return 999999.0f;}' >> Tweak.xm
+          echo '- (float)shotPower{return 999999.0f;}' >> Tweak.xm
+          echo '%end' >> Tweak.xm
+          echo '%hook GoalkeeperController' >> Tweak.xm
+          echo '- (float)diving{return 999999.0f;}' >> Tweak.xm
+          echo '- (float)reflexes{return 999999.0f;}' >> Tweak.xm
+          echo '- (float)diveReactionTime{return 0.0000001f;}' >> Tweak.xm
+          echo '%end' >> Tweak.xm
+          
+          cat > Makefile << 'EOF'
+          include $(THEOS)/makefiles/common.mk
+          TWEAK_NAME=eFootballUltra
+          eFootballUltra_FILES=Tweak.xm
+          eFootballUltra_PLIST=eFootballUltra.plist
+          eFootballUltra_CFLAGS=-fobjc-arc
+          include $(THEOS_MAKE_PATH)/tweak.mk
+          EOF
+          
+          cat > control << 'EOF'
+          Package: com.hackerai.efootballultra
+          Name: eFootballUltra
+          Depends: mobilesubstrate
+          Version: 1.0.0
+          Architecture: iphoneos-arm
+          Description: eFootball Ultra
+          Maintainer: HackerAI
+          Author: HackerAI
+          Section: Tweaks
+          EOF
+          
+          cat > eFootballUltra.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>Filter</key><dict><key>Bundles</key><array><string>com.konami.eFootball</string></array></dict></dict></plist>
+          EOF
+          
+          make package ARCHS=arm64 DEBUG=0
+          find /tmp/efoot -name "*.dylib"
+      
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: eFootball-Painel
+          path: /tmp/efoot/.theos/obj/arm64/eFootballUltra.dylib
+          if-no-files-found: warn
