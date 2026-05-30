@@ -5,28 +5,16 @@ on:
 
 jobs:
   build:
-    runs-on: macos-13
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/xybp888/ios-toolchain:latest
     
     steps:
-      - name: Instalar Theos (via Homebrew)
-        run: |
-          brew tap theos/theos
-          brew install theos
-          echo "THEOS=$(brew --prefix theos)" >> $GITHUB_ENV
-          
-      - name: Verificar instalação
-        run: |
-          export THEOS=$(brew --prefix theos)
-          echo "Theos instalado em: $THEOS"
-          ls -la $THEOS
-          
       - name: Criar projeto
         run: |
-          export THEOS=$(brew --prefix theos)
           mkdir -p /tmp/efoot
           cd /tmp/efoot
           
-          # CRIAR TWEAK.XM
           cat > Tweak.xm << 'FIM'
           #import <Foundation/Foundation.h>
           #import <UIKit/UIKit.h>
@@ -185,17 +173,20 @@ jobs:
           %end
           FIM
           
-          # CRIAR MAKEFILE
           cat > Makefile << 'FIM'
+          ARCHS = arm64
+          TARGET = iphone:clang:16.5:14.0
+          
           include $(THEOS)/makefiles/common.mk
+          
           TWEAK_NAME = eFootballUltra
           eFootballUltra_FILES = Tweak.xm
           eFootballUltra_PLIST = eFootballUltra.plist
           eFootballUltra_CFLAGS = -fobjc-arc
+          
           include $(THEOS_MAKE_PATH)/tweak.mk
           FIM
           
-          # CRIAR CONTROL
           cat > control << 'FIM'
           Package: com.hackerai.efootballultra
           Name: eFootballUltra
@@ -208,7 +199,6 @@ jobs:
           Section: Tweaks
           FIM
           
-          # CRIAR PLIST
           cat > eFootballUltra.plist << 'FIM'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -225,17 +215,18 @@ jobs:
           </plist>
           FIM
           
-          echo "✅ ARQUIVOS CRIADOS"
-          ls -la
+          echo "✅ Arquivos criados:"
+          ls -la /tmp/efoot/
           
-      - name: Compilar
+      - name: Compilar com Theos
         run: |
-          export THEOS=$(brew --prefix theos)
           cd /tmp/efoot
+          export THEOS=/usr/share/theos
           make package ARCHS=arm64 DEBUG=0
-          echo "✅ BUILD CONCLUÍDO"
-          find /tmp/efoot -name "*.dylib" -o -name "*.deb" -o -name "*.plist"
-      
+          echo "✅ Build finalizado"
+          echo "=== Arquivos gerados ==="
+          find /tmp/efoot -name "*.dylib" -o -name "*.deb" -o -name "*.plist" 2>/dev/null
+          
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
@@ -244,4 +235,5 @@ jobs:
             /tmp/efoot/.theos/obj/debug/arm64/eFootballUltra.dylib
             /tmp/efoot/.theos/obj/arm64/eFootballUltra.dylib
             /tmp/efoot/eFootballUltra.plist
+            /tmp/efoot/packages/*.deb
           if-no-files-found: warn
